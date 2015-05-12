@@ -2,6 +2,7 @@ import os
 from pyramid import testing
 import pyramid.httpexceptions as exc
 from waxe.core.tests.testing import WaxeTestCase, login_user, LoggedBobTestCase, SETTINGS
+from waxe.core import events
 from waxe.txt.views.editor import EditorView
 
 
@@ -55,6 +56,42 @@ class TestEditorView(LoggedBobTestCase):
         filename = os.path.join(path, 'file1.txt')
         self.assertTrue(os.path.exists(filename))
         os.remove(filename)
+
+    def test_update_events(self):
+        lis = []
+
+        def on_event(*args, **kw):
+            lis.append(1)
+
+        events.on('before_update.txt', on_event)
+        events.on('updated.txt', on_event)
+        events.on('updated_conflicted.txt', on_event)
+
+        path = os.path.join(os.getcwd(), 'waxe/txt/tests/')
+        self.user_bob.config.root_path = path
+
+        request = testing.DummyRequest(params={
+            'path': 'file1.txt',
+            'filecontent': '',
+        })
+        res = EditorView(request).update()
+        self.assertEqual(res, 'File updated')
+        filename = os.path.join(path, 'file1.txt')
+        self.assertTrue(os.path.exists(filename))
+        os.remove(filename)
+        self.assertEqual(len(lis), 2)
+
+        request = testing.DummyRequest(params={
+            'path': 'file1.txt',
+            'filecontent': '',
+            'conflicted': True,
+        })
+        res = EditorView(request).update()
+        self.assertEqual(res, 'File updated')
+        filename = os.path.join(path, 'file1.txt')
+        self.assertTrue(os.path.exists(filename))
+        os.remove(filename)
+        self.assertEqual(len(lis), 5)
 
 
 class FunctionalTestEditorView(WaxeTestCase):

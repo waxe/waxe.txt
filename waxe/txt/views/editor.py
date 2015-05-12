@@ -1,7 +1,7 @@
 from pyramid.view import view_config
 import pyramid.httpexceptions as exc
 import pyramid_logging
-from waxe.core import browser
+from waxe.core import browser, events
 from waxe.core.views.base import BaseUserView
 import waxe.txt
 
@@ -25,7 +25,7 @@ class EditorView(BaseUserView):
             content = content.decode('utf-8')
         except Exception, e:
             log.exception(e, request=self.request)
-            raise exc.HTTPInternalServerError(e)
+            raise exc.HTTPInternalServerError(str(e))
 
         return content
 
@@ -36,11 +36,23 @@ class EditorView(BaseUserView):
         if filecontent is None or not filename:
             raise exc.HTTPClientError('Missing parameters!')
 
-        absfilename = browser.absolute_path(filename, self.root_path)
+        events.trigger('before_update.txt',
+                       view=self,
+                       path=filename,
+                       filecontent=filecontent)
 
+        absfilename = browser.absolute_path(filename, self.root_path)
         with open(absfilename, 'w') as f:
             f.write(filecontent)
-        # TODO: index file
+
+        if self.req_post.get('conflicted'):
+            events.trigger('updated_conflicted.txt',
+                           view=self,
+                           path=filename)
+
+        events.trigger('updated.txt',
+                       view=self,
+                       path=filename)
         return 'File updated'
 
 
