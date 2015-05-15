@@ -104,17 +104,17 @@ class FunctionalTestEditorView(WaxeTestCase):
     def test_forbidden(self):
 
         for url in [
-            '/account/Bob/txt/edit.json',
-            '/account/Bob/txt/update.json',
+            '/api/1/account/Bob/txt/edit.json',
+            '/api/1/account/Bob/txt/update.json',
         ]:
             self.testapp.get(url, status=401)
 
     @login_user('Bob')
     def test_edit(self):
-        res = self.testapp.get('/account/Bob/txt/edit.json', status=400)
+        res = self.testapp.get('/api/1/account/Bob/txt/edit.json', status=400)
         self.assertEqual(res.body,  '"No filename given"')
 
     @login_user('Bob')
     def test_update(self):
-        res = self.testapp.post('/account/Bob/txt/update.json', status=400)
+        res = self.testapp.post('/api/1/account/Bob/txt/update.json', status=400)
         self.assertEqual(res.body,  '"Missing parameters!"')
