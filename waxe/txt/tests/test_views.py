@@ -60,10 +60,15 @@ class TestEditorView(LoggedBobTestCase):
     def test_update_events(self):
         lis = []
 
+        def on_before_update(view, path, filecontent):
+            lis.append(1)
+            filecontent += 'Hello world'
+            return view, path, filecontent
+
         def on_event(*args, **kw):
             lis.append(1)
 
-        events.on('before_update.txt', on_event)
+        events.on('before_update.txt', on_before_update)
         events.on('updated.txt', on_event)
         events.on('updated_conflicted.txt', on_event)
 
@@ -78,6 +83,8 @@ class TestEditorView(LoggedBobTestCase):
         self.assertEqual(res, 'File updated')
         filename = os.path.join(path, 'file1.txt')
         self.assertTrue(os.path.exists(filename))
+        s = open(filename, 'r').read()
+        self.assertEqual(s, 'Hello world')
         os.remove(filename)
         self.assertEqual(len(lis), 2)
 
@@ -90,6 +97,8 @@ class TestEditorView(LoggedBobTestCase):
         self.assertEqual(res, 'File updated')
         filename = os.path.join(path, 'file1.txt')
         self.assertTrue(os.path.exists(filename))
+        s = open(filename, 'r').read()
+        self.assertEqual(s, 'Hello world')
         os.remove(filename)
         self.assertEqual(len(lis), 5)
 

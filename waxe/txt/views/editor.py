@@ -36,10 +36,12 @@ class EditorView(BaseUserView):
         if filecontent is None or not filename:
             raise exc.HTTPClientError('Missing parameters!')
 
-        events.trigger('before_update.txt',
-                       view=self,
-                       path=filename,
-                       filecontent=filecontent)
+        res = events.trigger('before_update.txt',
+                             view=self,
+                             path=filename,
+                             filecontent=filecontent)
+        if res:
+            filecontent = res[2]
 
         absfilename = browser.absolute_path(filename, self.root_path)
         with open(absfilename, 'w') as f:
