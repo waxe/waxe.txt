@@ -42,7 +42,7 @@ class EditorView(BaseUserView):
 
         absfilename = browser.absolute_path(path, self.root_path)
         with open(absfilename, 'w') as f:
-            f.write(filecontent)
+            f.write(filecontent.encode('utf-8'))
 
         if self.req_post.get('conflicted'):
             events.trigger('updated_conflicted.txt',

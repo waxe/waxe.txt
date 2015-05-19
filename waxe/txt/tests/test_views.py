@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import os
 from pyramid import testing
 import pyramid.httpexceptions as exc
@@ -41,6 +43,11 @@ class TestEditorView(LoggedBobTestCase):
         self.user_bob.config.root_path = path
         request = testing.DummyRequest()
         EditorView(request)._update(path='file1.txt', filecontent='')
+        filename = os.path.join(path, 'file1.txt')
+        self.assertTrue(os.path.exists(filename))
+        os.remove(filename)
+
+        EditorView(request)._update(path='file1.txt', filecontent=u'é')
         filename = os.path.join(path, 'file1.txt')
         self.assertTrue(os.path.exists(filename))
         os.remove(filename)
