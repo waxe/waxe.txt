@@ -36,6 +36,15 @@ class TestEditorView(LoggedBobTestCase):
         filename = os.path.join(path, 'file1.txt')
         os.remove(filename)
 
+    def test__update(self):
+        path = os.path.join(os.getcwd(), 'waxe/txt/tests/')
+        self.user_bob.config.root_path = path
+        request = testing.DummyRequest()
+        EditorView(request)._update(path='file1.txt', filecontent='')
+        filename = os.path.join(path, 'file1.txt')
+        self.assertTrue(os.path.exists(filename))
+        os.remove(filename)
+
     def test_update(self):
         path = os.path.join(os.getcwd(), 'waxe/txt/tests/')
         self.user_bob.config.root_path = path
@@ -102,6 +111,50 @@ class TestEditorView(LoggedBobTestCase):
         os.remove(filename)
         self.assertEqual(len(lis), 5)
 
+    def test_update_texts(self):
+        path = os.path.join(os.getcwd(), 'waxe/txt/tests/')
+        self.user_bob.config.root_path = path
+
+        request = testing.DummyRequest(params={})
+        request.xmltool_transform = None
+        try:
+            EditorView(request).update_texts()
+            assert(False)
+        except exc.HTTPClientError, e:
+            expected = 'Missing parameters!'
+            self.assertEqual(str(e), expected)
+
+        request = testing.DummyRequest(
+            params={
+                'data:0:filecontent': 'content of the file 1',
+                'data:0:filename': 'thefilename1.xml',
+                'data:1:filecontent': 'content of the file 2',
+                'data:1:filename': 'thefilename2.xml',
+            })
+        request.xmltool_transform = None
+
+        def raise_func(*args, **kw):
+            raise Exception('My error')
+
+        events.on('before_update.txt', raise_func)
+        try:
+            EditorView(request).update_texts()
+            assert(False)
+        except exc.HTTPClientError, e:
+            expected = (
+                'thefilename1.xml: My error<br />'
+                'thefilename2.xml: My error')
+            self.assertEqual(str(e),  expected)
+
+        del events.events['before_update.txt']
+        res = EditorView(request).update_texts()
+        expected = 'Files updated'
+        self.assertEqual(res,  expected)
+
+        for f in ['thefilename1.xml', 'thefilename2.xml']:
+            absf = os.path.join(path, f)
+            os.remove(absf)
+
 
 class FunctionalTestEditorView(WaxeTestCase):
 
@@ -126,4 +179,9 @@ class FunctionalTestEditorView(WaxeTestCase):
     @login_user('Bob')
     def test_update(self):
         res = self.testapp.post('/api/1/account/Bob/txt/update.json', status=400)
+        self.assertEqual(res.body,  '"Missing parameters!"')
+
+    @login_user('Bob')
+    def test_update_texts(self):
+        res = self.testapp.post('/api/1/account/Bob/txt/updates.json', status=400)
         self.assertEqual(res.body,  '"Missing parameters!"')
