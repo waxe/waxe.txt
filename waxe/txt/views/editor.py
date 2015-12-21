@@ -31,14 +31,11 @@ class EditorView(BaseUserView):
         return content
 
     def _update(self, path, filecontent):
-        res = events.trigger('before_update.txt',
-                             view=self,
-                             path=path,
-                             filecontent=filecontent)
-        if res:
-            # if events.trigger returns something, it's the same parameters as
-            # input but updated
-            filecontent = res[2]
+        view, path, filecontent = events.trigger(
+            'before_update.txt',
+            view=self,
+            path=path,
+            filecontent=filecontent)
 
         absfilename = browser.absolute_path(path, self.root_path)
         with open(absfilename, 'w') as f:
