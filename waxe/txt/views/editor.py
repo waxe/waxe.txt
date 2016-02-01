@@ -41,6 +41,7 @@ class EditorView(BaseUserView):
         with open(absfilename, 'w') as f:
             f.write(filecontent.encode('utf-8'))
 
+        # conflicted=true is passed in the posted data when there is a conflict
         if self.req_post.get('conflicted'):
             events.trigger('updated_conflicted.txt',
                            view=self,
