@@ -15,6 +15,23 @@ class TestEditorView(LoggedBobTestCase):
         self.config.include('waxe.txt.views.editor',
                             route_prefix='/account/{login}')
 
+    def test_new(self):
+        path = os.path.join(os.getcwd(), 'waxe/txt/tests/')
+        self.user_bob.config.root_path = path
+        request = testing.DummyRequest()
+        try:
+            EditorView(request).new()
+            assert(False)
+        except exc.HTTPClientError, e:
+            expected = 'No filename given'
+            self.assertEqual(str(e), expected)
+
+        request = testing.DummyRequest(params={
+            'path': 'fixtures/test.txt',
+        })
+        res = EditorView(request).new()
+        self.assertEqual(res, 'Hello world\n')
+
     def test_edit(self):
         path = os.path.join(os.getcwd(), 'waxe/txt/tests/')
         self.user_bob.config.root_path = path
@@ -55,13 +72,22 @@ class TestEditorView(LoggedBobTestCase):
     def test_update(self):
         path = os.path.join(os.getcwd(), 'waxe/txt/tests/')
         self.user_bob.config.root_path = path
-        request = testing.DummyRequest(params={'path': 'file1.txt'})
+
+        request = testing.DummyRequest()
         try:
             EditorView(request).update()
             assert(False)
         except exc.HTTPClientError, e:
             expected = 'Missing parameters!'
             self.assertEqual(str(e), expected)
+
+        request = testing.DummyRequest(params={'path': 'file1.txt'})
+        # We can create empty file
+        res = EditorView(request).update()
+        self.assertEqual(res, 'File updated')
+        filename = os.path.join(path, 'file1.txt')
+        self.assertTrue(os.path.exists(filename))
+        os.remove(filename)
 
         request = testing.DummyRequest(params={
             'path': 'file1.txt',
@@ -173,6 +199,7 @@ class FunctionalTestEditorView(WaxeTestCase):
     def test_forbidden(self):
 
         for url in [
+            '/api/1/account/Bob/txt/new.json',
             '/api/1/account/Bob/txt/edit.json',
             '/api/1/account/Bob/txt/update.json',
         ]:

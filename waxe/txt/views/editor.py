@@ -15,6 +15,22 @@ EXTENSIONS = waxe.txt.EXTENSIONS
 
 class EditorView(BaseUserView):
 
+    @view_config(route_name='txt_new_json')
+    def new(self):
+        filename = self.req_get.get('path')
+        if not filename:
+            raise exc.HTTPClientError('No filename given')
+
+        absfilename = browser.absolute_path(filename, self.root_path)
+        try:
+            content = open(absfilename, 'r').read()
+            content = content.decode('utf-8')
+        except Exception, e:
+            log.exception(e, request=self.request)
+            raise exc.HTTPInternalServerError(str(e))
+
+        return content
+
     @view_config(route_name='txt_edit_json')
     def edit(self):
         filename = self.req_get.get('path')
@@ -31,11 +47,14 @@ class EditorView(BaseUserView):
         return content
 
     def _update(self, path, filecontent):
-        view, path, filecontent = events.trigger(
+        res = events.trigger(
             'before_update.txt',
             view=self,
             path=path,
             filecontent=filecontent)
+
+        if res:
+            view, path, filecontent = res
 
         absfilename = browser.absolute_path(path, self.root_path)
         with open(absfilename, 'w') as f:
@@ -53,9 +72,9 @@ class EditorView(BaseUserView):
 
     @view_config(route_name='txt_update_json')
     def update(self):
-        filecontent = self.req_post.get('filecontent')
+        filecontent = self.req_post.get('filecontent') or ''
         filename = self.req_post.get('path')
-        if filecontent is None or not filename:
+        if not filename:
             raise exc.HTTPClientError('Missing parameters!')
         self._update(filename, filecontent)
         return 'File updated'
@@ -82,6 +101,7 @@ class EditorView(BaseUserView):
 
 
 def includeme(config):
+    config.add_route('txt_new_json', '/new.json')
     config.add_route('txt_edit_json', '/edit.json')
     config.add_route('txt_update_json', '/update.json')
     config.add_route('txt_updates_json', '/updates.json')
